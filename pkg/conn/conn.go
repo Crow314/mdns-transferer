@@ -99,6 +99,23 @@ func (c *Connector) Close() error {
 	return nil
 }
 
+func (c *Connector) AddPeer(peer *net.UDPAddr) error {
+	switch len(peer.IP) {
+	case net.IPv4len:
+		c.Lock()
+		c.ipv4Peers[peer] = struct{}{}
+		c.Unlock()
+	case net.IPv6len:
+		c.Lock()
+		c.ipv6Peers[peer] = struct{}{}
+		c.Unlock()
+	default:
+		return fmt.Errorf("Illegal IP address\n")
+	}
+
+	return nil
+}
+
 // SendMessage send mdns packet to peer proxy
 func (c *Connector) SendMessage(msg *dns.Msg) error {
 	buf, err := msg.Pack()
@@ -107,7 +124,6 @@ func (c *Connector) SendMessage(msg *dns.Msg) error {
 	}
 
 	c.RLock()
-
 	if c.ipv4Conn != nil {
 		for peer := range c.ipv4Peers {
 			_, err = c.ipv4Conn.WriteToUDP(buf, peer)
@@ -126,7 +142,6 @@ func (c *Connector) SendMessage(msg *dns.Msg) error {
 		}
 	}
 	c.RUnlock()
-
 	return nil
 }
 
