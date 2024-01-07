@@ -4,6 +4,7 @@ import (
 	"github.com/Crow314/mdns-transferer/pkg/conn"
 	"github.com/Crow314/mdns-transferer/pkg/mdns"
 	"github.com/Crow314/mdns-transferer/pkg/proxy"
+
 	"github.com/miekg/dns"
 )
 

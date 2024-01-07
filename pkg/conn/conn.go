@@ -2,12 +2,13 @@ package conn
 
 import (
 	"fmt"
-	"github.com/miekg/dns"
 	"log"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/miekg/dns"
 )
 
 type Connector struct {

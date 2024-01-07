@@ -3,8 +3,10 @@ package proxy
 import (
 	"github.com/Crow314/mdns-transferer/pkg/conn"
 	"github.com/Crow314/mdns-transferer/pkg/mdns"
-	"github.com/miekg/dns"
+
 	"log"
+
+	"github.com/miekg/dns"
 )
 
 // LocalSender sends message received from remote to local with mdns
