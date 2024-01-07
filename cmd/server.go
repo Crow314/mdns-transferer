@@ -22,8 +22,8 @@ func main() {
 	tc := make(chan *dns.Msg)
 	mc.StartReceiver(tc)
 
-	go proxy.LocalSender(mc, c.ReceiveChan())
-	go proxy.RemoteTransferor(c, tc)
+	go proxy.LocalSender(mc.SendMessage, c.ReceiveChan())
+	go proxy.RemoteTransferor(c.SendMDNS, tc)
 
 	c.StartReceiver()
 }
