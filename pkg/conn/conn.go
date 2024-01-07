@@ -121,7 +121,7 @@ func (c *Connector) AddPeer(peer *net.UDPAddr) error {
 	return nil
 }
 
-// SendPacket send udp packet to peer proxy
+// SendPacket sends udp packet to peer proxy
 func (c *Connector) SendPacket(data []byte) error {
 	c.RLock()
 	if c.ipv4Conn != nil {
@@ -145,7 +145,7 @@ func (c *Connector) SendPacket(data []byte) error {
 	return nil
 }
 
-// SendMDNS send mdns packet to peer proxy
+// SendMDNS sends mdns packet to peer proxy
 func (c *Connector) SendMDNS(msg *dns.Msg) error {
 	buf, err := msg.Pack()
 	if err != nil {
