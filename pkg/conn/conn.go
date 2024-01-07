@@ -78,8 +78,11 @@ func (c *Connector) Close() error {
 		return nil
 	}
 
+	c.RLock()
 	log.Printf("[INFO] conn: Closing client %v", *c)
+	c.RUnlock()
 
+	c.Lock()
 	if c.ipv4Conn != nil {
 		_ = c.ipv4Conn.Close()
 	}
@@ -91,6 +94,7 @@ func (c *Connector) Close() error {
 	if c.receiveChan != nil {
 		close(c.receiveChan)
 	}
+	c.Unlock()
 
 	return nil
 }
@@ -101,6 +105,8 @@ func (c *Connector) SendMessage(msg *dns.Msg) error {
 	if err != nil {
 		return err
 	}
+
+	c.RLock()
 
 	if c.ipv4Conn != nil {
 		for peer := range c.ipv4Peers {
@@ -119,12 +125,14 @@ func (c *Connector) SendMessage(msg *dns.Msg) error {
 			}
 		}
 	}
+	c.RUnlock()
 
 	return nil
 }
 
 // StartReceiver starts receiver goroutines
 func (c *Connector) StartReceiver() {
+	c.RLock()
 	if c.ipv4Conn != nil {
 		go c.receiver(c.ipv4Conn)
 	}
@@ -132,6 +140,7 @@ func (c *Connector) StartReceiver() {
 	if c.ipv6Conn != nil {
 		go c.receiver(c.ipv6Conn)
 	}
+	c.RUnlock()
 }
 
 // receiver is used to receive until we get a shutdown
@@ -158,6 +167,8 @@ func (c *Connector) receiver(l *net.UDPConn) {
 			continue
 		}
 
+		c.RLock()
 		c.receiveChan <- msg
+		c.RUnlock()
 	}
 }
