@@ -13,14 +13,16 @@ func main() {
 
 	}
 
-	srv := new(conn.Server)
-	wsSrv := &conn.WsSrv
+	c, err := conn.NewConnector(nil, true, true)
+	if err != nil {
+
+	}
 
 	tc := make(chan *dns.Msg)
 	mc.StartReceiver(tc)
 
-	go proxy.LocalSender(mc, wsSrv.ReceiveChan())
-	go proxy.RemoteTransferor(wsSrv, tc)
+	go proxy.LocalSender(mc, c.ReceiveChan())
+	go proxy.RemoteTransferor(c, tc)
 
-	srv.Up()
+	c.StartReceiver()
 }
