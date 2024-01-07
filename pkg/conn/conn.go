@@ -7,6 +7,7 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type Connector struct {
@@ -18,7 +19,8 @@ type Connector struct {
 
 	receiveChan chan *dns.Msg
 
-	closed int32
+	sendKeepAlive int32
+	closed        int32
 
 	sync.RWMutex
 }
@@ -78,6 +80,8 @@ func (c *Connector) Close() error {
 		return nil
 	}
 
+	atomic.CompareAndSwapInt32(&c.sendKeepAlive, 1, 0)
+
 	c.RLock()
 	log.Printf("[INFO] conn: Closing client %v", *c)
 	c.RUnlock()
@@ -116,17 +120,12 @@ func (c *Connector) AddPeer(peer *net.UDPAddr) error {
 	return nil
 }
 
-// SendMessage send mdns packet to peer proxy
-func (c *Connector) SendMessage(msg *dns.Msg) error {
-	buf, err := msg.Pack()
-	if err != nil {
-		return err
-	}
-
+// SendPacket send udp packet to peer proxy
+func (c *Connector) SendPacket(data []byte) error {
 	c.RLock()
 	if c.ipv4Conn != nil {
 		for peer := range c.ipv4Peers {
-			_, err = c.ipv4Conn.WriteToUDP(buf, peer)
+			_, err := c.ipv4Conn.WriteToUDP(data, peer)
 			if err != nil {
 				return err
 			}
@@ -135,7 +134,7 @@ func (c *Connector) SendMessage(msg *dns.Msg) error {
 
 	if c.ipv6Conn != nil {
 		for peer := range c.ipv6Peers {
-			_, err = c.ipv6Conn.WriteToUDP(buf, peer)
+			_, err := c.ipv6Conn.WriteToUDP(data, peer)
 			if err != nil {
 				return err
 			}
@@ -143,6 +142,46 @@ func (c *Connector) SendMessage(msg *dns.Msg) error {
 	}
 	c.RUnlock()
 	return nil
+}
+
+// SendMDNS send mdns packet to peer proxy
+func (c *Connector) SendMDNS(msg *dns.Msg) error {
+	buf, err := msg.Pack()
+	if err != nil {
+		return err
+	}
+
+	err = c.SendPacket(buf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// StartKeepAliveSender starts keepAliveSender goroutines
+func (c *Connector) StartKeepAliveSender() {
+	if !atomic.CompareAndSwapInt32(&c.sendKeepAlive, 0, 1) {
+		return
+	}
+
+	// RFC9000
+	// > ... experience shows that sending
+	// > packets every 30 seconds is necessary to prevent the majority of
+	// > middleboxes from losing state for UDP flows.
+	go c.keepAliveSender(30 * time.Second)
+}
+
+// keepAliveSender sends Keep-Alive packets
+func (c *Connector) keepAliveSender(d time.Duration) {
+	for atomic.LoadInt32(&c.sendKeepAlive) == 1 {
+		err := c.SendPacket([]byte{})
+		if err != nil {
+			log.Printf("[ERROR] conn: Failed to send keep-alive packet: %v", err)
+		}
+
+		time.Sleep(d)
+	}
 }
 
 // StartReceiver starts receiver goroutines
@@ -173,6 +212,11 @@ func (c *Connector) receiver(l *net.UDPConn) {
 
 		if err != nil {
 			log.Printf("[ERROR] conn: Failed to read packet: %v", err)
+			continue
+		}
+
+		// Receive Keep-Alive Packet
+		if n == 0 {
 			continue
 		}
 

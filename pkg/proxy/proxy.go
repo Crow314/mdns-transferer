@@ -23,7 +23,7 @@ func LocalSender(c *mdns.Client, rc <-chan *dns.Msg) {
 func RemoteTransferor(c *conn.Connector, rc <-chan *dns.Msg) {
 	for {
 		msg := <-rc
-		err := c.SendMessage(msg)
+		err := c.SendMDNS(msg)
 		if err != nil {
 			log.Printf("[ERROR] proxy: Failed to transefer mdns message: %v", err)
 		}
