@@ -20,9 +20,12 @@ func LocalSender(c *mdns.Client, rc <-chan *dns.Msg) {
 }
 
 // RemoteTransferor transfers message received from local with mdns
-func RemoteTransferor(wsSrv *conn.WsServer, rc <-chan *dns.Msg) {
+func RemoteTransferor(c *conn.Connector, rc <-chan *dns.Msg) {
 	for {
 		msg := <-rc
-		wsSrv.SendMessage(msg)
+		err := c.SendMDNS(msg)
+		if err != nil {
+			log.Printf("[ERROR] proxy: Failed to transefer mdns message: %v", err)
+		}
 	}
 }
