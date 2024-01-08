@@ -71,6 +71,7 @@ func NewConnector(port *int, v4 bool, v6 bool) (*Connector, error) {
 	return c, nil
 }
 
+// ReceiveChan returns receiveChan
 func (c *Connector) ReceiveChan() <-chan *dns.Msg {
 	return c.receiveChan
 }

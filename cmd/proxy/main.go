@@ -6,26 +6,21 @@ import (
 	"github.com/Crow314/mdns-transferer/pkg/proxy"
 
 	"log"
-
-	"github.com/miekg/dns"
 )
 
 func main() {
-	mc, err := mdns.NewClient(true, true)
+	mc, err := mdns.NewClient(true, false)
 	if err != nil {
 		log.Fatalf("[ERROR] Failed to generate mdns client\n %v", err)
 	}
 
-	c, err := conn.NewConnector(nil, true, true)
+	c, err := conn.NewConnector(nil, true, false)
 	if err != nil {
 		log.Fatalf("[ERROR] Failed to generate connector\n %v", err)
 	}
 
-	tc := make(chan *dns.Msg)
-	mc.StartReceiver(tc)
-
 	go proxy.LocalSender(mc.SendMessage, c.ReceiveChan())
-	go proxy.RemoteTransferor(c.SendMDNS, tc)
+	go proxy.RemoteTransferor(c.SendMDNS, mc.ReceiveChan())
 
 	c.StartReceiver()
 }

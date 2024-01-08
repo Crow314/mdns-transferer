@@ -38,6 +38,8 @@ type Client struct {
 	ipv4MulticastConn *net.UDPConn
 	ipv6MulticastConn *net.UDPConn
 
+	receiveChan chan *dns.Msg
+
 	closed int32
 }
 
@@ -90,14 +92,22 @@ func NewClient(v4 bool, v6 bool) (*Client, error) {
 	}
 
 	c := &Client{
-		use_ipv4:          v4,
-		use_ipv6:          v6,
+		use_ipv4: v4,
+		use_ipv6: v6,
+
 		ipv4MulticastConn: mconn4,
 		ipv6MulticastConn: mconn6,
 		ipv4UnicastConn:   uconn4,
 		ipv6UnicastConn:   uconn6,
+
+		receiveChan: make(chan *dns.Msg),
 	}
 	return c, nil
+}
+
+// ReceiveChan returns receiveChan
+func (c *Client) ReceiveChan() <-chan *dns.Msg {
+	return c.receiveChan
 }
 
 // Close is used to cleanup the Client
@@ -123,6 +133,10 @@ func (c *Client) Close() error {
 
 	if c.ipv6MulticastConn != nil {
 		_ = c.ipv6MulticastConn.Close()
+	}
+
+	if c.receiveChan != nil {
+		close(c.receiveChan)
 	}
 
 	return nil
@@ -154,27 +168,27 @@ func (c *Client) SendMessage(msg *dns.Msg) error {
 }
 
 // StartReceiver starts receiver goroutines
-func (c *Client) StartReceiver(msgCh chan<- *dns.Msg) {
+func (c *Client) StartReceiver() {
 	if c.ipv4UnicastConn != nil {
-		go c.receiver(c.ipv4UnicastConn, msgCh)
+		go c.receiver(c.ipv4UnicastConn)
 	}
 
 	if c.ipv6UnicastConn != nil {
-		go c.receiver(c.ipv6UnicastConn, msgCh)
+		go c.receiver(c.ipv6UnicastConn)
 	}
 
 	if c.ipv4MulticastConn != nil {
-		go c.receiver(c.ipv4MulticastConn, msgCh)
+		go c.receiver(c.ipv4MulticastConn)
 	}
 
 	if c.ipv6MulticastConn != nil {
-		go c.receiver(c.ipv6MulticastConn, msgCh)
+		go c.receiver(c.ipv6MulticastConn)
 	}
 	log.Println("[INFO] mdns: Started receiver goroutine")
 }
 
 // receiver is used to receive until we get a shutdown
-func (c *Client) receiver(l *net.UDPConn, msgCh chan<- *dns.Msg) {
+func (c *Client) receiver(l *net.UDPConn) {
 	if l == nil {
 		return
 	}
@@ -197,6 +211,6 @@ func (c *Client) receiver(l *net.UDPConn, msgCh chan<- *dns.Msg) {
 			continue
 		}
 
-		msgCh <- msg
+		c.receiveChan <- msg
 	}
 }
