@@ -118,6 +118,11 @@ func (c *Connector) AddPeer(peer *net.UDPAddr) error {
 		return fmt.Errorf("Illegal IP address\n")
 	}
 
+	log.Printf("[INFO] conn: Add peer: %v", peer)
+	c.RLock()
+	log.Printf("[DEBUG] conn: ipv4Peers: %v", c.ipv4Peers)
+	log.Printf("[DEBUG] conn: ipv6Peers: %v", c.ipv6Peers)
+	c.RUnlock()
 	return nil
 }
 
@@ -129,6 +134,8 @@ func (c *Connector) SendPacket(data []byte) error {
 			_, err := c.ipv4Conn.WriteToUDP(data, peer)
 			if err != nil {
 				return err
+			} else {
+				log.Printf("[DEBUG] conn: Send packet dest: %v, data: %v", peer, data)
 			}
 		}
 	}
@@ -138,6 +145,8 @@ func (c *Connector) SendPacket(data []byte) error {
 			_, err := c.ipv6Conn.WriteToUDP(data, peer)
 			if err != nil {
 				return err
+			} else {
+				log.Printf("[DEBUG] conn: Send packet dest: %v, data: %v", peer, data)
 			}
 		}
 	}
@@ -196,6 +205,8 @@ func (c *Connector) StartReceiver() {
 		go c.receiver(c.ipv6Conn)
 	}
 	c.RUnlock()
+
+	log.Println("[INFO] conn: Started receiver goroutine")
 }
 
 // receiver is used to receive until we get a shutdown

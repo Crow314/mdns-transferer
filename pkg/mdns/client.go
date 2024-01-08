@@ -107,7 +107,7 @@ func (c *Client) Close() error {
 		return nil
 	}
 
-	log.Printf("[INFO] mdns: Closing Client %v", *c)
+	log.Printf("[INFO] mdns: Closing client: %v", *c)
 
 	if c.ipv4UnicastConn != nil {
 		_ = c.ipv4UnicastConn.Close()
@@ -149,6 +149,7 @@ func (c *Client) SendMessage(msg *dns.Msg) error {
 		}
 	}
 
+	log.Printf("[DEBUG] mdns: Send mdns packet: %v", msg)
 	return nil
 }
 
@@ -169,6 +170,7 @@ func (c *Client) StartReceiver(msgCh chan<- *dns.Msg) {
 	if c.ipv6MulticastConn != nil {
 		go c.receiver(c.ipv6MulticastConn, msgCh)
 	}
+	log.Println("[INFO] mdns: Started receiver goroutine")
 }
 
 // receiver is used to receive until we get a shutdown
