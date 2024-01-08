@@ -14,7 +14,7 @@ func main() {
 		log.Fatalf("[ERROR] Failed to generate mdns client\n %v", err)
 	}
 
-	c, err := conn.NewConnector(nil, true, false)
+	c, err := conn.NewConnectorSimply(true, false)
 	if err != nil {
 		log.Fatalf("[ERROR] Failed to generate connector\n %v", err)
 	}
