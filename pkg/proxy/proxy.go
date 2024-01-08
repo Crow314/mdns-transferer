@@ -1,31 +1,36 @@
 package proxy
 
 import (
-	"github.com/Crow314/mdns-transferer/pkg/conn"
-	"github.com/Crow314/mdns-transferer/pkg/mdns"
-	"github.com/miekg/dns"
 	"log"
+
+	"github.com/miekg/dns"
 )
 
 // LocalSender sends message received from remote to local with mdns
-func LocalSender(c *mdns.Client, rc <-chan *dns.Msg) {
+func LocalSender(f func(msg *dns.Msg) error, rc <-chan *dns.Msg) {
+	log.Printf("[INFO] proxy: Start LocalSender")
+
 	for {
 		msg := <-rc
 
-		err := c.SendMessage(msg)
+		err := f(msg)
 		if err != nil {
-			log.Printf("[ERROR] proxy: Failed to send mdns message: %v", err)
+			log.Printf("[WARN] proxy: Failed to send mdns message: %v", err)
 		}
 	}
 }
 
 // RemoteTransferor transfers message received from local with mdns
-func RemoteTransferor(c *conn.Connector, rc <-chan *dns.Msg) {
+func RemoteTransferor(f func(msg *dns.Msg) error, rc <-chan *dns.Msg) {
+	log.Printf("[INFO] proxy: Start RemoteTransferor")
+
 	for {
 		msg := <-rc
-		err := c.SendMDNS(msg)
+		err := f(msg)
 		if err != nil {
-			log.Printf("[ERROR] proxy: Failed to transefer mdns message: %v", err)
+			log.Printf("[WARN] proxy: Failed to transefer message: %v", err)
+		} else {
+			log.Printf("[INFO] proxy: Transfer mDNS: %v", msg)
 		}
 	}
 }
