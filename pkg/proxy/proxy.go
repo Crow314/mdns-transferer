@@ -10,9 +10,7 @@ import (
 func LocalSender(f func(msg *dns.Msg) error, rc <-chan *dns.Msg) {
 	log.Printf("[INFO] proxy: Start LocalSender")
 
-	for {
-		msg := <-rc
-
+	for msg := range rc {
 		err := f(msg)
 		if err != nil {
 			log.Printf("[WARN] proxy: Failed to send mdns message: %v", err)
@@ -24,8 +22,7 @@ func LocalSender(f func(msg *dns.Msg) error, rc <-chan *dns.Msg) {
 func RemoteTransferor(f func(msg *dns.Msg) error, rc <-chan *dns.Msg) {
 	log.Printf("[INFO] proxy: Start RemoteTransferor")
 
-	for {
-		msg := <-rc
+	for msg := range rc {
 		err := f(msg)
 		if err != nil {
 			log.Printf("[WARN] proxy: Failed to transefer message: %v", err)

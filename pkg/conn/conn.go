@@ -11,6 +11,8 @@ import (
 	"github.com/miekg/dns"
 )
 
+const DefaultPort = 15353
+
 type Connector struct {
 	ipv4Conn *net.UDPConn
 	ipv6Conn *net.UDPConn
@@ -26,30 +28,43 @@ type Connector struct {
 	sync.RWMutex
 }
 
-// NewConnector creates a new connector while proxies
-func NewConnector(port *int, v4 bool, v6 bool) (*Connector, error) {
+// NewConnectorSimply creates a new connector while proxies
+func NewConnectorSimply(v4 bool, v6 bool) (*Connector, error) {
+	var (
+		v4Addr *net.UDPAddr
+		v6Addr *net.UDPAddr
+	)
+
 	if !v4 && !v6 {
 		return nil, fmt.Errorf("Must enable at least one of IPv4 and IPv6\n")
 	}
 
-	if port == nil {
-		port = new(int)
-		*port = 15353 // Default port
+	if v4 {
+		v4Addr = &net.UDPAddr{IP: net.IPv4zero, Port: DefaultPort}
 	}
 
+	if v6 {
+		v6Addr = &net.UDPAddr{IP: net.IPv6zero, Port: DefaultPort}
+	}
+
+	return NewConnector(v4Addr, v6Addr)
+}
+
+// NewConnector creates a new connector while proxies
+func NewConnector(v4 *net.UDPAddr, v6 *net.UDPAddr) (*Connector, error) {
 	var conn4 *net.UDPConn
 	var conn6 *net.UDPConn
 	var err error
 
-	if v4 {
-		conn4, err = net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero, Port: *port})
+	if v4 != nil {
+		conn4, err = net.ListenUDP("udp4", v4)
 		if err != nil {
 			log.Printf("[ERROR] conn: Failed to bind to udp4 port: %v", err)
 		}
 	}
 
-	if v6 {
-		conn6, err = net.ListenUDP("udp6", &net.UDPAddr{IP: net.IPv6zero, Port: *port})
+	if v6 != nil {
+		conn6, err = net.ListenUDP("udp6", v6)
 		if err != nil {
 			log.Printf("[ERROR] conn: Failed to bind to udp6 port: %v", err)
 		}
@@ -71,6 +86,7 @@ func NewConnector(port *int, v4 bool, v6 bool) (*Connector, error) {
 	return c, nil
 }
 
+// ReceiveChan returns receiveChan
 func (c *Connector) ReceiveChan() <-chan *dns.Msg {
 	return c.receiveChan
 }
@@ -105,6 +121,7 @@ func (c *Connector) Close() error {
 	return nil
 }
 
+// AddPeer adds new peer to which connector will send
 func (c *Connector) AddPeer(peer *net.UDPAddr) error {
 	if p4 := peer.IP.To4(); len(p4) == net.IPv4len {
 		peer.IP = p4
