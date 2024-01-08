@@ -32,6 +32,7 @@ func NewConnector(port *int, v4 bool, v6 bool) (*Connector, error) {
 	}
 
 	if port == nil {
+		port = new(int)
 		*port = 15353 // Default port
 	}
 
@@ -104,6 +105,10 @@ func (c *Connector) Close() error {
 }
 
 func (c *Connector) AddPeer(peer *net.UDPAddr) error {
+	if p4 := peer.IP.To4(); len(p4) == net.IPv4len {
+		peer.IP = p4
+	}
+
 	switch len(peer.IP) {
 	case net.IPv4len:
 		c.Lock()
