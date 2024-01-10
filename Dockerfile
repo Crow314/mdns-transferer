@@ -10,4 +10,4 @@ RUN go mod download
 
 COPY . .
 
-CMD sh -c 'go test ./cmd/proxy && go test ./pkg/conn'
+CMD sh -c 'go test ./pkg/conn && go test ./pkg/mdns'
