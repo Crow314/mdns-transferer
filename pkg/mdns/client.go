@@ -38,6 +38,8 @@ type Client struct {
 	ipv4MulticastConn *net.UDPConn
 	ipv6MulticastConn *net.UDPConn
 
+	receiveRejectFilter []net.IP
+
 	receiveChan chan *dns.Msg
 
 	closed int32
@@ -91,6 +93,23 @@ func NewClient(v4 bool, v6 bool) (*Client, error) {
 		return nil, fmt.Errorf("failed to bind to any multicast udp port\n")
 	}
 
+	var myAddrs []net.IP
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		log.Printf("[ERROR] mdns: Failed to get my adresses: %v", err)
+	}
+
+	for _, v := range addrs {
+		var ip net.IP
+
+		switch x := v.(type) {
+		case *net.IPNet:
+			ip = x.IP
+		}
+
+		myAddrs = append(myAddrs, ip)
+	}
+
 	c := &Client{
 		use_ipv4: v4,
 		use_ipv6: v6,
@@ -99,6 +118,8 @@ func NewClient(v4 bool, v6 bool) (*Client, error) {
 		ipv6MulticastConn: mconn6,
 		ipv4UnicastConn:   uconn4,
 		ipv6UnicastConn:   uconn6,
+
+		receiveRejectFilter: myAddrs,
 
 		receiveChan: make(chan *dns.Msg),
 	}
@@ -193,8 +214,10 @@ func (c *Client) receiver(l *net.UDPConn) {
 		return
 	}
 	buf := make([]byte, 65536)
+
+receiver_loop:
 	for atomic.LoadInt32(&c.closed) == 0 {
-		n, err := l.Read(buf)
+		n, addr, err := l.ReadFromUDP(buf)
 
 		if atomic.LoadInt32(&c.closed) == 1 {
 			return
@@ -203,6 +226,13 @@ func (c *Client) receiver(l *net.UDPConn) {
 		if err != nil {
 			log.Printf("[ERROR] mdns: Failed to read packet: %v", err)
 			continue
+		}
+
+		for _, ip := range c.receiveRejectFilter {
+			if addr.IP.Equal(ip) {
+				log.Printf("[DEBUG] mdns: Received packet sent by myself")
+				continue receiver_loop
+			}
 		}
 
 		msg := new(dns.Msg)
