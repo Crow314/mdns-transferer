@@ -4,6 +4,7 @@ import (
 	"github.com/Crow314/mdns-transferer/pkg/conn"
 	"github.com/Crow314/mdns-transferer/pkg/mdns"
 	"github.com/Crow314/mdns-transferer/pkg/proxy"
+	"sync"
 
 	"log"
 )
@@ -22,5 +23,15 @@ func main() {
 	go proxy.LocalSender(mc.SendMessage, c.ReceiveChan())
 	go proxy.RemoteTransferor(c.SendMDNS, mc.ReceiveChan())
 
+	mc.StartReceiver()
 	c.StartReceiver()
+
+	defer func() {
+		_ = mc.Close()
+		_ = c.Close()
+	}()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	wg.Wait()
 }
