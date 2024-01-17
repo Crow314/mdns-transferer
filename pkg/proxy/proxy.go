@@ -27,7 +27,8 @@ func RemoteTransferor(f func(msg *dns.Msg) error, rc <-chan *dns.Msg) {
 		if err != nil {
 			log.Printf("[WARN] proxy: Failed to transefer message: %v", err)
 		} else {
-			log.Printf("[INFO] proxy: Transfer mDNS: %v", msg)
+			log.Printf("[INFO] proxy: Transfer mDNS: Questions: %v Answers: %v Additionals:%v",
+				msg.Question, msg.Answer, msg.Extra)
 		}
 	}
 }

@@ -184,7 +184,8 @@ func (c *Client) SendMessage(msg *dns.Msg) error {
 		}
 	}
 
-	log.Printf("[DEBUG] mdns: Send mdns packet: %v", msg)
+	log.Printf("[DEBUG] mdns: Send mdns packet: Questions: %v Answers: %v Additionals:%v",
+		msg.Question, msg.Answer, msg.Extra)
 	return nil
 }
 
