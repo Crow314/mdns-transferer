@@ -157,7 +157,6 @@ func (c *Connector) SendPacket(data []byte) error {
 			if err != nil {
 				return err
 			} else {
-				log.Printf("[DEBUG] conn: Send packet dest: %v, data: %v", peer, data)
 			}
 		}
 	}
@@ -168,7 +167,6 @@ func (c *Connector) SendPacket(data []byte) error {
 			if err != nil {
 				return err
 			} else {
-				log.Printf("[DEBUG] conn: Send packet dest: %v, data: %v", peer, data)
 			}
 		}
 	}
